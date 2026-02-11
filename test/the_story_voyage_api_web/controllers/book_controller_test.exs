@@ -44,6 +44,16 @@ defmodule TheStoryVoyageApiWeb.BookControllerTest do
       assert data["title"] == "Detailed Book"
       assert length(data["authors"]) == 1
     end
+
+    test "index filters by search query", %{conn: conn} do
+      Books.create_book(%{"title" => "Searchable Book"})
+      Books.create_book(%{"title" => "Other Book"})
+
+      conn = get(conn, ~p"/api/v1/books", q: "Searchable")
+      data = json_response(conn, 200)["data"]
+      assert length(data) == 1
+      assert hd(data)["title"] == "Searchable Book"
+    end
   end
 
   describe "Protected Access (Create/Update)" do

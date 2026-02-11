@@ -65,5 +65,44 @@ defmodule TheStoryVoyageApi.BooksTest do
       assert length(page2) == 2
       assert hd(page2).title != hd(page1).title
     end
+
+    test "list_books/1 search and filter", %{genre1: g1, genre2: g2, mood1: m1} do
+      {:ok, b1} =
+        Books.create_book(%{
+          "title" => "Elixir Guide",
+          "genre_ids" => [g1.id],
+          "mood_ids" => [m1.id]
+        })
+
+      {:ok, _b2} = Books.create_book(%{"title" => "Rust Guide", "genre_ids" => [g2.id]})
+      {:ok, b3} = Books.create_book(%{"title" => "Advanced Elixir", "genre_ids" => [g1.id]})
+
+      # Search by keyword
+      assert [match] = Books.list_books(%{"q" => "Advanced"})
+      assert match.id == b3.id
+
+      # Search by kw (case insensitive)
+      results = Books.list_books(%{"q" => "elixir"})
+      assert length(results) == 2
+
+      # Filter by genre
+      results = Books.list_books(%{"genre_id" => g1.id})
+      assert length(results) == 2
+      assert Enum.all?(results, fn b -> b.id in [b1.id, b3.id] end)
+
+      # Filter by mood
+      assert [match] = Books.list_books(%{"mood_id" => m1.id})
+      assert match.id == b1.id
+
+      # Combined
+      results = Books.list_books(%{"q" => "Elixir", "genre_id" => g1.id})
+      assert length(results) == 2
+
+      # Combined with mood
+      assert [match] =
+               Books.list_books(%{"q" => "Elixir", "genre_id" => g1.id, "mood_id" => m1.id})
+
+      assert match.id == b1.id
+    end
   end
 end

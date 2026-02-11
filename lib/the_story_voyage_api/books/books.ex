@@ -15,17 +15,46 @@ defmodule TheStoryVoyageApi.Books do
     |> Repo.preload([:authors, :genres, :moods, :editions, :series])
   end
 
-  @doc "Lists books with optional filtering and pagination."
+  @doc "Lists books with optional filtering (search, genre, mood) and pagination."
   def list_books(params \\ %{}) do
     limit = Map.get(params, "limit", 20)
     offset = Map.get(params, "offset", 0)
 
     Book
+    |> search_by_keyword(params["q"])
+    |> filter_by_genre(params["genre_id"])
+    |> filter_by_mood(params["mood_id"])
     |> limit(^limit)
     |> offset(^offset)
     |> order_by(desc: :inserted_at)
     |> Repo.all()
     |> Repo.preload([:authors, :genres, :moods])
+  end
+
+  defp search_by_keyword(query, nil), do: query
+  defp search_by_keyword(query, ""), do: query
+
+  defp search_by_keyword(query, keyword) do
+    term = "%#{keyword}%"
+    from b in query, where: like(b.title, ^term) or like(b.description, ^term)
+  end
+
+  defp filter_by_genre(query, nil), do: query
+  defp filter_by_genre(query, ""), do: query
+
+  defp filter_by_genre(query, genre_id) do
+    from b in query,
+      join: g in assoc(b, :genres),
+      where: g.id == ^genre_id
+  end
+
+  defp filter_by_mood(query, nil), do: query
+  defp filter_by_mood(query, ""), do: query
+
+  defp filter_by_mood(query, mood_id) do
+    from b in query,
+      join: m in assoc(b, :moods),
+      where: m.id == ^mood_id
   end
 
   @doc "Creates a new book with associations."
