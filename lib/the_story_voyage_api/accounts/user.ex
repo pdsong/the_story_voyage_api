@@ -57,9 +57,8 @@ defmodule TheStoryVoyageApi.Accounts.User do
         changeset
 
       password ->
-        # TODO(F02): Replace with Bcrypt.hash_pwd_salt(password)
         changeset
-        |> put_change(:password_hash, Base.encode64(:crypto.hash(:sha256, password)))
+        |> put_change(:password_hash, Bcrypt.hash_pwd_salt(password))
         |> delete_change(:password)
     end
   end

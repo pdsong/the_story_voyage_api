@@ -5,8 +5,11 @@ defmodule TheStoryVoyageApiWeb.Router do
     plug :accepts, ["json"]
   end
 
-  scope "/api", TheStoryVoyageApiWeb do
+  scope "/api/v1", TheStoryVoyageApiWeb do
     pipe_through :api
+
+    # Auth
+    post "/auth/register", AuthController, :register
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

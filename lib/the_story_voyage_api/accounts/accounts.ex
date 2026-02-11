@@ -18,7 +18,14 @@ defmodule TheStoryVoyageApi.Accounts do
     Repo.get_by(User, username: username)
   end
 
-  @doc "Creates a new user with the given attributes."
+  @doc "Creates a new user with registration changeset (hashes password)."
+  def register_user(attrs) do
+    %User{}
+    |> User.registration_changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc "Creates a new user with the given attributes (admin/internal)."
   def create_user(attrs) do
     %User{}
     |> User.changeset(attrs)
