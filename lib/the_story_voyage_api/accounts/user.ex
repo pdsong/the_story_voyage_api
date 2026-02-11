@@ -15,6 +15,8 @@ defmodule TheStoryVoyageApi.Accounts.User do
     field :location, :string
     field :privacy_level, :string, default: "public"
     field :role, :string, default: "user"
+    field :reset_password_token, :string
+    field :reset_password_sent_at, :utc_datetime
 
     # Virtual field for password input (not stored)
     field :password, :string, virtual: true
@@ -23,7 +25,16 @@ defmodule TheStoryVoyageApi.Accounts.User do
   end
 
   @required_fields [:username, :email, :password_hash]
-  @optional_fields [:display_name, :bio, :avatar_url, :location, :privacy_level, :role]
+  @optional_fields [
+    :display_name,
+    :bio,
+    :avatar_url,
+    :location,
+    :privacy_level,
+    :role,
+    :reset_password_token,
+    :reset_password_sent_at
+  ]
 
   @doc "Changeset for creating/updating a user (admin or internal)."
   def changeset(user, attrs) do
@@ -48,6 +59,15 @@ defmodule TheStoryVoyageApi.Accounts.User do
     |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "must be a valid email address")
     |> unique_constraint(:username)
     |> unique_constraint(:email)
+    |> hash_password()
+  end
+
+  @doc "Changeset for resetting password."
+  def password_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:password])
+    |> validate_required([:password])
+    |> validate_length(:password, min: 8, max: 100)
     |> hash_password()
   end
 

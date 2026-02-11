@@ -11,6 +11,8 @@ defmodule TheStoryVoyageApiWeb.Router do
     # Auth
     post "/auth/register", AuthController, :register
     post "/auth/login", AuthController, :login
+    post "/auth/request_reset", PasswordResetController, :create
+    post "/auth/reset_password", PasswordResetController, :update
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

@@ -56,6 +56,35 @@ defmodule TheStoryVoyageApi.Accounts do
     |> Repo.update()
   end
 
+  @doc "Gets a user by reset token."
+  def get_user_by_reset_token(token) do
+    Repo.get_by(User, reset_password_token: token)
+  end
+
+  @doc "Generates a reset token for the user."
+  def create_reset_token(user) do
+    token = :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
+
+    user
+    |> User.changeset(%{
+      reset_password_token: token,
+      reset_password_sent_at: DateTime.utc_now()
+    })
+    |> Repo.update()
+  end
+
+  @doc "Resets the user password."
+  @doc "Resets the user password."
+  def reset_password(user, attrs) do
+    user
+    |> User.password_changeset(attrs)
+    |> User.changeset(%{
+      reset_password_token: nil,
+      reset_password_sent_at: nil
+    })
+    |> Repo.update()
+  end
+
   @doc "Lists all users (for admin)."
   def list_users do
     Repo.all(User)
