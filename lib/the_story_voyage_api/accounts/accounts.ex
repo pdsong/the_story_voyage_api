@@ -74,7 +74,6 @@ defmodule TheStoryVoyageApi.Accounts do
   end
 
   @doc "Resets the user password."
-  @doc "Resets the user password."
   def reset_password(user, attrs) do
     user
     |> User.password_changeset(attrs)

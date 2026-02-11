@@ -28,19 +28,45 @@ defmodule TheStoryVoyageApi.Books do
     |> Repo.preload([:authors, :genres, :moods])
   end
 
-  @doc "Creates a new book."
+  @doc "Creates a new book with associations."
   def create_book(attrs) do
+    authors = get_entities_by_ids(Author, attrs["author_ids"])
+    genres = get_entities_by_ids(Genre, attrs["genre_ids"])
+    moods = get_entities_by_ids(Mood, attrs["mood_ids"])
+
     %Book{}
     |> Book.changeset(attrs)
+    |> put_assoc_if_loaded(:authors, authors)
+    |> put_assoc_if_loaded(:genres, genres)
+    |> put_assoc_if_loaded(:moods, moods)
     |> Repo.insert()
   end
 
-  @doc "Updates a book."
+  @doc "Updates a book with associations."
   def update_book(%Book{} = book, attrs) do
+    authors = get_entities_by_ids(Author, attrs["author_ids"])
+    genres = get_entities_by_ids(Genre, attrs["genre_ids"])
+    moods = get_entities_by_ids(Mood, attrs["mood_ids"])
+
     book
+    |> Repo.preload([:authors, :genres, :moods])
     |> Book.changeset(attrs)
+    |> put_assoc_if_loaded(:authors, authors)
+    |> put_assoc_if_loaded(:genres, genres)
+    |> put_assoc_if_loaded(:moods, moods)
     |> Repo.update()
   end
+
+  defp get_entities_by_ids(schema, ids) when is_list(ids) do
+    Repo.all(from e in schema, where: e.id in ^ids)
+  end
+
+  defp get_entities_by_ids(_schema, _), do: nil
+
+  defp put_assoc_if_loaded(changeset, _key, nil), do: changeset
+
+  defp put_assoc_if_loaded(changeset, key, entities),
+    do: Ecto.Changeset.put_assoc(changeset, key, entities)
 
   # ========== Authors ==========
 
@@ -62,6 +88,12 @@ defmodule TheStoryVoyageApi.Books do
     Repo.all(Genre)
   end
 
+  def create_genre(attrs) do
+    %Genre{}
+    |> Genre.changeset(attrs)
+    |> Repo.insert()
+  end
+
   def get_genre_by_slug(slug) do
     Repo.get_by(Genre, slug: slug)
   end
@@ -70,6 +102,12 @@ defmodule TheStoryVoyageApi.Books do
 
   def list_moods do
     Repo.all(Mood)
+  end
+
+  def create_mood(attrs) do
+    %Mood{}
+    |> Mood.changeset(attrs)
+    |> Repo.insert()
   end
 
   def get_mood_by_slug(slug) do

@@ -19,9 +19,17 @@ defmodule TheStoryVoyageApi.Books.Book do
     belongs_to :series, TheStoryVoyageApi.Books.Series
     has_many :editions, TheStoryVoyageApi.Books.Edition
 
-    many_to_many :authors, TheStoryVoyageApi.Books.Author, join_through: "book_authors"
-    many_to_many :genres, TheStoryVoyageApi.Books.Genre, join_through: "book_genres"
-    many_to_many :moods, TheStoryVoyageApi.Books.Mood, join_through: "book_moods"
+    many_to_many :authors, TheStoryVoyageApi.Books.Author,
+      join_through: "book_authors",
+      on_replace: :delete
+
+    many_to_many :genres, TheStoryVoyageApi.Books.Genre,
+      join_through: "book_genres",
+      on_replace: :delete
+
+    many_to_many :moods, TheStoryVoyageApi.Books.Mood,
+      join_through: "book_moods",
+      on_replace: :delete
 
     timestamps(type: :utc_datetime)
   end
