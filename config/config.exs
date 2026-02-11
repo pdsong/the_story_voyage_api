@@ -11,6 +11,8 @@ config :the_story_voyage_api,
   ecto_repos: [TheStoryVoyageApi.Repo],
   generators: [timestamp_type: :utc_datetime]
 
+config :joken, default_signer: "secret"
+
 # Configure the endpoint
 config :the_story_voyage_api, TheStoryVoyageApiWeb.Endpoint,
   url: [host: "localhost"],

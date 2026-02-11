@@ -4,9 +4,28 @@ defmodule TheStoryVoyageApiWeb.AuthController do
   """
   use TheStoryVoyageApiWeb, :controller
 
-  alias TheStoryVoyageApi.Accounts
+  alias TheStoryVoyageApi.{Accounts, Token}
 
   action_fallback TheStoryVoyageApiWeb.FallbackController
+
+  @doc "POST /api/v1/auth/login"
+  def login(conn, %{"email" => email, "password" => password}) do
+    with {:ok, user} <- Accounts.authenticate_user(email, password),
+         {:ok, token, _claims} <- Token.generate_token(user) do
+      conn
+      |> put_status(:ok)
+      |> json(%{
+        token: token,
+        user: %{
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          display_name: user.display_name,
+          role: user.role
+        }
+      })
+    end
+  end
 
   @doc "POST /api/v1/auth/register"
   def register(conn, %{"user" => user_params}) do

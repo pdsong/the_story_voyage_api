@@ -83,8 +83,52 @@ defmodule TheStoryVoyageApiWeb.AuthControllerTest do
 
       user = Accounts.get_user_by_email("test@example.com")
       assert user
-      refute user.password_hash == "password123"
       assert Bcrypt.verify_pass("password123", user.password_hash)
+    end
+  end
+
+  describe "POST /api/v1/auth/login" do
+    setup do
+      {:ok, user} = Accounts.register_user(@valid_user)
+      %{user: user}
+    end
+
+    test "returns token and user with valid credentials", %{conn: conn} do
+      conn =
+        post(conn, ~p"/api/v1/auth/login", %{
+          "email" => @valid_user["email"],
+          "password" => @valid_user["password"]
+        })
+
+      assert %{
+               "token" => token,
+               "user" => %{
+                 "email" => "test@example.com",
+                 "username" => "testuser"
+               }
+             } = json_response(conn, 200)
+
+      assert is_binary(token)
+    end
+
+    test "returns 401 with invalid password", %{conn: conn} do
+      conn =
+        post(conn, ~p"/api/v1/auth/login", %{
+          "email" => @valid_user["email"],
+          "password" => "wrongpass"
+        })
+
+      assert json_response(conn, 401)
+    end
+
+    test "returns 401 with non-existent email", %{conn: conn} do
+      conn =
+        post(conn, ~p"/api/v1/auth/login", %{
+          "email" => "nobody@example.com",
+          "password" => "password123"
+        })
+
+      assert json_response(conn, 401)
     end
   end
 end

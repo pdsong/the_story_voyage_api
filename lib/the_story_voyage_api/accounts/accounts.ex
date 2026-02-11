@@ -18,6 +18,23 @@ defmodule TheStoryVoyageApi.Accounts do
     Repo.get_by(User, username: username)
   end
 
+  @doc "Authenticates a user by email and password."
+  def authenticate_user(email, password) do
+    user = get_user_by_email(email)
+
+    cond do
+      user && Bcrypt.verify_pass(password, user.password_hash) ->
+        {:ok, user}
+
+      user ->
+        {:error, :unauthorized}
+
+      true ->
+        Bcrypt.no_user_verify()
+        {:error, :unauthorized}
+    end
+  end
+
   @doc "Creates a new user with registration changeset (hashes password)."
   def register_user(attrs) do
     %User{}
