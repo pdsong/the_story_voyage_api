@@ -128,4 +128,15 @@ defmodule TheStoryVoyageApi.Accounts do
       existing -> Repo.delete(existing)
     end
   end
+
+  def list_reviews_for_book(book_id, _params \\ %{}) do
+    query =
+      from ub in UserBook,
+        where: ub.book_id == ^book_id,
+        where: not is_nil(ub.review_content),
+        preload: [:user],
+        order_by: [desc: ub.updated_at]
+
+    Repo.all(query)
+  end
 end

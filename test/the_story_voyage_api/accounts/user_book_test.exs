@@ -71,5 +71,29 @@ defmodule TheStoryVoyageApi.Accounts.UserBookTest do
       assert length(books) == 1
       assert hd(books).book_id == book1.id
     end
+
+    test "list_reviews_for_book/1 returns only reviews with content" do
+      user1 = user_fixture()
+      user2 = user_fixture()
+      book = book_fixture()
+
+      # Review
+      Accounts.track_book(user1, book.id, %{
+        status: "read",
+        rating: 5,
+        review_title: "Good",
+        review_content: "Content"
+      })
+
+      # Just rating, no review content
+      Accounts.track_book(user2, book.id, %{
+        status: "read",
+        rating: 4
+      })
+
+      reviews = Accounts.list_reviews_for_book(book.id)
+      assert length(reviews) == 1
+      assert hd(reviews).user_id == user1.id
+    end
   end
 end

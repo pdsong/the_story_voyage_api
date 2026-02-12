@@ -12,13 +12,16 @@ defmodule TheStoryVoyageApiWeb.Router do
   scope "/api/v1", TheStoryVoyageApiWeb do
     pipe_through :api
 
-    # Auth
+    # Public routes
     post "/auth/register", AuthController, :register
     post "/auth/login", AuthController, :login
     post "/auth/request_reset", PasswordResetController, :create
     post "/auth/reset_password", PasswordResetController, :update
 
-    resources "/books", BookController, only: [:index, :show]
+    get "/books", BookController, :index
+    get "/books/:id", BookController, :show
+
+    get "/books/:book_id/reviews", ReviewController, :index
   end
 
   scope "/api/v1", TheStoryVoyageApiWeb do

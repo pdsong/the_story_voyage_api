@@ -19,7 +19,7 @@ defmodule TheStoryVoyageApiWeb.UserBookController do
     # But usually creating expects "user_book" wrapper? Or direct params?
     # API design says: POST /me/books body: {book_id, status}
 
-    attrs = Map.take(params, ["status", "rating", "notes"])
+    attrs = Map.take(params, ["status", "rating", "notes", "review_title", "review_content"])
 
     with {:ok, user_book} <- Accounts.track_book(user, book_id, attrs) do
       conn
