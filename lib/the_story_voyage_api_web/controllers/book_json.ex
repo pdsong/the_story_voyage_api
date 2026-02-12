@@ -15,7 +15,7 @@ defmodule TheStoryVoyageApiWeb.BookJSON do
     %{data: data(book)}
   end
 
-  defp data(%Book{} = book) do
+  def data(%Book{} = book) do
     %{
       id: book.id,
       title: book.title,

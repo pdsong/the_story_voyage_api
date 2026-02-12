@@ -2,8 +2,9 @@ defmodule TheStoryVoyageApi.Accounts do
   @moduledoc """
   The Accounts context — manages users, follows, blocks, and authentication.
   """
+  import Ecto.Query
   alias TheStoryVoyageApi.Repo
-  alias TheStoryVoyageApi.Accounts.User
+  alias TheStoryVoyageApi.Accounts.{User, UserBook}
 
   @doc "Returns a user by ID."
   def get_user(id), do: Repo.get(User, id)
@@ -87,5 +88,44 @@ defmodule TheStoryVoyageApi.Accounts do
   @doc "Lists all users (for admin)."
   def list_users do
     Repo.all(User)
+  end
+
+  # ========== User Books (Reading Status) ==========
+
+  def list_user_books(%User{} = user, params \\ %{}) do
+    query =
+      from ub in UserBook,
+        where: ub.user_id == ^user.id,
+        preload: [book: [:authors, :genres, :moods]]
+
+    status = params["status"]
+    query = if status, do: where(query, [ub], ub.status == ^status), else: query
+
+    Repo.all(query)
+  end
+
+  def get_user_book(%User{} = user, book_id) do
+    Repo.get_by(UserBook, user_id: user.id, book_id: book_id)
+  end
+
+  def track_book(%User{} = user, book_id, attrs) do
+    case get_user_book(user, book_id) do
+      nil ->
+        %UserBook{user_id: user.id, book_id: book_id}
+        |> UserBook.changeset(attrs)
+        |> Repo.insert()
+
+      existing ->
+        existing
+        |> UserBook.changeset(attrs)
+        |> Repo.update()
+    end
+  end
+
+  def untrack_book(%User{} = user, book_id) do
+    case get_user_book(user, book_id) do
+      nil -> {:error, :not_found}
+      existing -> Repo.delete(existing)
+    end
   end
 end

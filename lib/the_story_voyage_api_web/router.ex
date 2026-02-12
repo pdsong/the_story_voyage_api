@@ -25,7 +25,11 @@ defmodule TheStoryVoyageApiWeb.Router do
     pipe_through [:api, :auth]
 
     # Protected routes (Logged in users)
-    # ... placeholder for user specific routes
+    scope "/me" do
+      get "/books", UserBookController, :index
+      post "/books", UserBookController, :create
+      delete "/books/:id", UserBookController, :delete
+    end
 
     # Admin/Librarian routes
     scope "/books" do

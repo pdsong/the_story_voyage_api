@@ -18,6 +18,9 @@ defmodule TheStoryVoyageApi.Accounts.User do
     field :reset_password_token, :string
     field :reset_password_sent_at, :utc_datetime
 
+    has_many :user_books, TheStoryVoyageApi.Accounts.UserBook
+    has_many :books, through: [:user_books, :book]
+
     # Virtual field for password input (not stored)
     field :password, :string, virtual: true
 
