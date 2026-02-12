@@ -139,4 +139,35 @@ defmodule TheStoryVoyageApi.Accounts do
 
     Repo.all(query)
   end
+
+  def get_user_stats(user_id) do
+    # 1. Status Counts
+    status_query =
+      from ub in UserBook,
+        where: ub.user_id == ^user_id,
+        group_by: ub.status,
+        select: {ub.status, count(ub.id)}
+
+    status_counts = Repo.all(status_query) |> Map.new()
+
+    # 2. Total Pages (only for "read" books)
+    pages_query =
+      from ub in UserBook,
+        join: b in assoc(ub, :book),
+        where: ub.user_id == ^user_id and ub.status == "read",
+        select: sum(b.pages)
+
+    # 3. Average Rating
+    rating_query =
+      from ub in UserBook,
+        where: ub.user_id == ^user_id and not is_nil(ub.rating),
+        select: avg(ub.rating)
+
+    %{
+      read_count: Map.get(status_counts, "read", 0),
+      reading_count: Map.get(status_counts, "reading", 0),
+      total_pages_read: Repo.one(pages_query) || 0,
+      average_rating: Repo.one(rating_query) || 0.0
+    }
+  end
 end

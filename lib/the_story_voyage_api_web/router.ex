@@ -32,6 +32,8 @@ defmodule TheStoryVoyageApiWeb.Router do
       get "/books", UserBookController, :index
       post "/books", UserBookController, :create
       delete "/books/:id", UserBookController, :delete
+
+      get "/stats", StatsController, :show
     end
 
     # Admin/Librarian routes

@@ -13,6 +13,7 @@ defmodule TheStoryVoyageApi.Books.Book do
     field :character_or_plot, :string
     field :average_rating, :float, default: 0.0
     field :ratings_count, :integer, default: 0
+    field :pages, :integer
     field :first_published, :date
     field :series_position, :float
 
@@ -42,6 +43,7 @@ defmodule TheStoryVoyageApi.Books.Book do
     :character_or_plot,
     :average_rating,
     :ratings_count,
+    :pages,
     :first_published,
     :series_id,
     :series_position
@@ -56,6 +58,7 @@ defmodule TheStoryVoyageApi.Books.Book do
     |> validate_inclusion(:character_or_plot, ["character", "plot", "both", nil])
     |> validate_number(:average_rating, greater_than_or_equal_to: 0.0, less_than_or_equal_to: 5.0)
     |> validate_number(:ratings_count, greater_than_or_equal_to: 0)
+    |> validate_number(:pages, greater_than: 0)
     |> foreign_key_constraint(:series_id)
   end
 end
