@@ -8,6 +8,13 @@ defmodule TheStoryVoyageApi.Books do
 
   # ========== Books ==========
 
+  @doc "Returns a book by ID, preloading associations. Raises if not found."
+  def get_book!(id) do
+    Book
+    |> Repo.get!(id)
+    |> Repo.preload([:authors, :genres, :moods, :editions, :series])
+  end
+
   @doc "Returns a book by ID, preloading associations."
   def get_book(id) do
     Book

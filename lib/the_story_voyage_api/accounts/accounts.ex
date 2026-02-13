@@ -109,24 +109,62 @@ defmodule TheStoryVoyageApi.Accounts do
   end
 
   def track_book(%User{} = user, book_id, attrs) do
-    case get_user_book(user, book_id) do
-      nil ->
-        %UserBook{user_id: user.id, book_id: book_id}
-        |> UserBook.changeset(attrs)
-        |> Repo.insert()
+    result =
+      case get_user_book(user, book_id) do
+        nil ->
+          %UserBook{user_id: user.id, book_id: book_id}
+          |> UserBook.changeset(attrs)
+          |> Repo.insert()
 
-      existing ->
-        existing
-        |> UserBook.changeset(attrs)
-        |> Repo.update()
+        existing ->
+          existing
+          |> UserBook.changeset(attrs)
+          |> Repo.update()
+      end
+
+    case result do
+      {:ok, user_book} ->
+        recalculate_book_rating(book_id)
+        {:ok, user_book}
+
+      error ->
+        error
     end
   end
 
   def untrack_book(%User{} = user, book_id) do
     case get_user_book(user, book_id) do
-      nil -> {:error, :not_found}
-      existing -> Repo.delete(existing)
+      nil ->
+        {:error, :not_found}
+
+      existing ->
+        res = Repo.delete(existing)
+        recalculate_book_rating(book_id)
+        res
     end
+  end
+
+  def recalculate_book_rating(book_id) do
+    query =
+      from ub in UserBook,
+        where: ub.book_id == ^book_id and not is_nil(ub.rating),
+        select: {count(ub.id), avg(ub.rating)}
+
+    {count, average} = Repo.one(query)
+
+    # If count is 0, average is nil, default to 0.0
+    average = average || 0.0
+    count = count || 0
+
+    # We need to use Books context or direct repo update.
+    # To avoid circular dependency if Books uses Accounts, we use Repo directly or a Books function.
+    # But Books context is higher level? Usually Accounts -> Books dependency is fine if Books doesn't depend on Accounts.
+    # But UserBook belongs_to Book, so Accounts depends on Books schema.
+    # Let's use Repo.update_all or get and update.
+    import Ecto.Query
+
+    from(b in TheStoryVoyageApi.Books.Book, where: b.id == ^book_id)
+    |> Repo.update_all(set: [average_rating: average, ratings_count: count])
   end
 
   def list_reviews_for_book(book_id, _params \\ %{}) do

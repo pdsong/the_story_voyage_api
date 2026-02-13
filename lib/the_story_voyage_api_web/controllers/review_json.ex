@@ -11,6 +11,7 @@ defmodule TheStoryVoyageApiWeb.ReviewJSON do
       rating: review.rating,
       title: review.review_title,
       content: review.review_content,
+      contains_spoilers: review.review_contains_spoilers,
       user: %{
         id: review.user.id,
         username: review.user.username
