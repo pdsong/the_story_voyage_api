@@ -37,9 +37,15 @@ defmodule TheStoryVoyageApiWeb.Router do
       get "/books", UserBookController, :index
       post "/books", UserBookController, :create
       delete "/books/:id", UserBookController, :delete
-
-      get "/stats", StatsController, :show
     end
+
+    # Reading Goals
+    resources "/reading_goals", ReadingGoalController, only: [:index, :create]
+
+    # Challenges
+    resources "/challenges", ChallengeController, only: [:index, :show]
+    post "/challenges/:id/join", ChallengeController, :join
+    post "/challenges/:id/entries", ChallengeController, :add_entry
 
     # Admin/Librarian routes
     scope "/books" do
