@@ -27,6 +27,8 @@ defmodule TheStoryVoyageApiWeb.Router do
   scope "/api/v1", TheStoryVoyageApiWeb do
     pipe_through [:api, :auth]
 
+    get "/stats", StatsController, :show
+
     # Protected routes (Logged in users)
     scope "/me" do
       get "/books", UserBookController, :index

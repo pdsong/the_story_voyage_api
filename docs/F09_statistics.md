@@ -21,17 +21,18 @@
 
 | 方法 | 路径 | 描述 | Params |
 |------|------|------|--------|
-| `GET` | `/api/v1/me/stats` | 获取当前用户的统计概览 | - |
-| `GET` | `/stats` | (目前在Router中是 `/stats`，需确认是否为 `/me/stats` 更佳? 目前实现是 `/stats` direct under scope but controller logic uses `current_user`) | - |
+| `GET` | `/api/v1/me/stats` | 获取当前用户的统计概览（主推荐，与 `/me` 资源保持一致） | - |
+| `GET` | `/api/v1/stats` | `/me/stats` 的快捷别名 | - |
 
 **Router Implementation**:
 ```elixir
 scope "/api/v1", ... do
   pipe_through [:api, :auth]
+  get "/me/stats", StatsController, :show
   get "/stats", StatsController, :show
 end
 ```
-Use as: `GET /api/v1/stats` (requires Auth).
+Use as: `GET /api/v1/me/stats` (Standard) or `GET /api/v1/stats` (Shortcut).
 
 **响应示例**:
 ```json
