@@ -28,6 +28,9 @@ defmodule TheStoryVoyageApiWeb.Router do
     pipe_through [:api, :auth]
 
     get "/stats", StatsController, :show
+    get "/stats/year/:year", StatsController, :year
+    get "/stats/genres", StatsController, :genres
+    get "/stats/moods", StatsController, :moods
 
     # Protected routes (Logged in users)
     scope "/me" do

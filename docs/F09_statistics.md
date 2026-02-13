@@ -1,48 +1,68 @@
-# F09 — 基础阅读统计
+# F09 — 基础统计
 
-> **分支**: `feat/F09-statistics`
-> **日期**: 2026-02-12
+> **分支**: `feat/F09-basic-stats` (Remediated)
+> **日期**: 2026-02-13
 > **状态**: ✅ 已完成
-> **测试**: 3 tests (Stats Calculation & Controller), 0 failures
-> **依赖**: F01-F08
+> **测试**: 87 tests (Total), 0 failures
+> **依赖**: F07, F08
 
 ---
 
 ## 1. 本次变更概述
 
-提供用户阅读数据的统计功能，包括已读书籍数量、正在阅读数量、累计阅读页数和平均评分。
-为此在 `books` 表中添加了 `pages` 字段。
+实现了用户阅读数据的统计功能，包括总览、年度统计和分布统计。
+**Remediation**: 补全了 `development_management.md` 中缺失的细分统计端点。
 
 ---
 
 ## 2. API 变更
 
-### Public/Protected Routes
+### Protected Routes (需要登录)
 
-| 方法 | 路径 | 描述 | Params |
-|------|------|------|--------|
-| `GET` | `/api/v1/me/stats` | 获取当前用户的统计概览（主推荐，与 `/me` 资源保持一致） | - |
-| `GET` | `/api/v1/stats` | `/me/stats` 的快捷别名 | - |
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| `GET` | `/api/v1/stats` | 获取阅读总览 (Total Read, Pages, Avg Rating) |
+| `GET` | `/api/v1/stats/year/:year` | 获取年度统计 (含月度时间线) |
+| `GET` | `/api/v1/stats/genres` | 获取类型分布 (Genre Distribution) |
+| `GET` | `/api/v1/stats/moods` | 获取情绪分布 (Mood Distribution) |
 
-**Router Implementation**:
-```elixir
-scope "/api/v1", ... do
-  pipe_through [:api, :auth]
-  get "/me/stats", StatsController, :show
-  get "/stats", StatsController, :show
-end
-```
-Use as: `GET /api/v1/me/stats` (Standard) or `GET /api/v1/stats` (Shortcut).
-
-**响应示例**:
+**1. 总览 (`/stats`)**:
 ```json
 {
   "data": {
     "read_count": 12,
-    "reading_count": 3,
-    "total_pages_read": 3500,
-    "average_rating": 4.5
+    "reading_count": 2,
+    "want_to_read_count": 5,
+    "total_pages_read": 3450,
+    "average_rating": 4.25
   }
+}
+```
+
+**2. 年度统计 (`/stats/year/2026`)**:
+```json
+{
+  "data": {
+    "year": 2026,
+    "book_count": 5,
+    "page_count": 1200,
+    "average_rating": 4.5,
+    "monthly_timeline": [
+      {"month": 1, "count": 2},
+      {"month": 2, "count": 0},
+      ...
+    ]
+  }
+}
+```
+
+**3. 类型分布 (`/stats/genres`)**:
+```json
+{
+  "data": [
+    {"name": "Sci-Fi", "count": 5, "percentage": 41.6},
+    {"name": "Fantasy", "count": 3, "percentage": 25.0}
+  ]
 }
 ```
 
@@ -50,16 +70,15 @@ Use as: `GET /api/v1/me/stats` (Standard) or `GET /api/v1/stats` (Shortcut).
 
 ## 3. 实现细节
 
-### Schema: `Book`
-- 新增字段: `pages` (integer, > 0).
+### Context: `Stats`
+- 独立于 `Accounts`，专门处理聚合查询。
+- **Aggregation**: 使用 Ecto `group_by` 和 `count` / `sum` / `avg`。
+- **Timeline**: 暂时通过 Elixir 处理月度聚合 (MVP)，未来可优化为 SQL `date_trunc`。
 
-### Context: `Accounts.get_user_stats(user_id)`
-- **read_count**: 统计 status="read" 的记录。
-- **reading_count**: 统计 status="reading" 的记录。
-- **total_pages_read**: 关联 `UserBook` -> `Book`，累加 status="read" 的书籍页数。
-- **average_rating**: 统计所有已评分记录的平均值。
+### Schema Changes
+- `books`: 在 F09 早期已添加 `pages` 字段。
 
 ---
 
-## 4. 已知限制
-- 统计是实时查询计算的 (Live Calculation)。数据量大时可能需要在 F09+ 引入缓存或计数器列。
+## 4. 后续计划
+- [ ] F10: Reading Challenges
