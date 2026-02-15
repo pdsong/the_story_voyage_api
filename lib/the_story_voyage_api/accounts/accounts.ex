@@ -135,26 +135,54 @@ defmodule TheStoryVoyageApi.Accounts do
   end
 
   def track_book(%User{} = user, book_id, attrs) do
-    result =
+    {action, changeset} =
       case get_user_book(user, book_id) do
         nil ->
-          %UserBook{user_id: user.id, book_id: book_id}
-          |> UserBook.changeset(attrs)
-          |> Repo.insert()
+          {:insert, %UserBook{user_id: user.id, book_id: book_id} |> UserBook.changeset(attrs)}
 
         existing ->
-          existing
-          |> UserBook.changeset(attrs)
-          |> Repo.update()
+          {:update, existing |> UserBook.changeset(attrs)}
+      end
+
+    result =
+      case action do
+        :insert -> Repo.insert(changeset)
+        :update -> Repo.update(changeset)
       end
 
     case result do
       {:ok, user_book} ->
         recalculate_book_rating(book_id)
+        maybe_create_activity(user, user_book, changeset)
         {:ok, user_book}
 
       error ->
         error
+    end
+  end
+
+  defp maybe_create_activity(user, user_book, changeset) do
+    # Avoid circular dependency alias if possible, or alias here
+    alias TheStoryVoyageApi.Social
+
+    # Check for status change
+    if status = Ecto.Changeset.get_change(changeset, :status) do
+      case status do
+        "reading" -> Social.create_activity(user, "started_book", %{book_id: user_book.book_id})
+        "read" -> Social.create_activity(user, "finished_book", %{book_id: user_book.book_id})
+        _ -> :ok
+      end
+    end
+
+    # Check for rating
+    if rating = Ecto.Changeset.get_change(changeset, :rating) do
+      Social.create_activity(user, "rated_book", %{book_id: user_book.book_id, rating: rating})
+    end
+
+    # Check for review
+    if Ecto.Changeset.get_change(changeset, :review_content) do
+      # Only if content is non-empty? Validation constraint handles logic but here implies content changed.
+      Social.create_activity(user, "reviewed_book", %{book_id: user_book.book_id})
     end
   end
 

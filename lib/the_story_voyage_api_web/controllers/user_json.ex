@@ -9,7 +9,9 @@ defmodule TheStoryVoyageApiWeb.UserJSON do
     %{data: data(user, :public)}
   end
 
-  defp data(%User{} = user, :private) do
+  def data(user), do: data(user, :public)
+
+  def data(%User{} = user, :private) do
     %{
       id: user.id,
       username: user.username,
@@ -24,7 +26,7 @@ defmodule TheStoryVoyageApiWeb.UserJSON do
     }
   end
 
-  defp data(%User{} = user, :public) do
+  def data(%User{} = user, :public) do
     %{
       id: user.id,
       username: user.username,

@@ -77,4 +77,55 @@ defmodule TheStoryVoyageApi.SocialTest do
       assert {:error, :blocked} = Social.send_friend_request(sender, receiver)
     end
   end
+
+  describe "activities" do
+    import TheStoryVoyageApi.BooksFixtures
+
+    test "create_activity/3 creates an activity" do
+      user = user_fixture()
+      book = book_fixture()
+      assert {:ok, activity} = Social.create_activity(user, "started_book", %{book_id: book.id})
+      assert activity.type == "started_book"
+      assert activity.data.book_id == book.id
+    end
+
+    test "list_feed/2 lists activities from followed users" do
+      user = user_fixture()
+      followed_user = user_fixture()
+      non_followed_user = user_fixture()
+
+      Social.follow_user(user, followed_user)
+
+      book = book_fixture()
+
+      {:ok, activity1} =
+        Social.create_activity(followed_user, "started_book", %{book_id: book.id})
+
+      {:ok, _activity2} =
+        Social.create_activity(non_followed_user, "started_book", %{book_id: book.id})
+
+      feed = Social.list_feed(user)
+      assert length(feed) == 1
+      assert hd(feed).id == activity1.id
+    end
+
+    test "list_feed/2 orders by inserted_at desc" do
+      user = user_fixture()
+      followed_user = user_fixture()
+      Social.follow_user(user, followed_user)
+
+      book = book_fixture()
+
+      {:ok, _} = Social.create_activity(followed_user, "started_book", %{book_id: book.id})
+      # Ensure timestamp diff > 1s
+      :timer.sleep(1100)
+
+      {:ok, activity2} =
+        Social.create_activity(followed_user, "finished_book", %{book_id: book.id})
+
+      feed = Social.list_feed(user)
+      assert length(feed) == 2
+      assert hd(feed).id == activity2.id
+    end
+  end
 end

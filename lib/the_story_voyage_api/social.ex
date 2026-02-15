@@ -219,4 +219,40 @@ defmodule TheStoryVoyageApi.Social do
         select: u
     )
   end
+
+  alias TheStoryVoyageApi.Social.Activity
+
+  ## Activities
+
+  def create_activity(user, type, data \\ %{}) do
+    book_id = data["book_id"] || data[:book_id]
+
+    %Activity{}
+    |> Activity.changeset(%{
+      user_id: user.id,
+      type: type,
+      data: data,
+      book_id: book_id
+    })
+    |> Repo.insert()
+  end
+
+  def list_feed(%User{} = user, params \\ %{}) do
+    following_ids =
+      from(uf in UserFollow, where: uf.follower_id == ^user.id, select: uf.followed_id)
+
+    query =
+      from a in Activity,
+        where: a.user_id in subquery(following_ids),
+        order_by: [desc: a.inserted_at],
+        preload: [:user, book: [:authors, :genres, :moods]]
+
+    page = params["page"] || 1
+    page_size = 20
+    offset = (String.to_integer(to_string(page)) - 1) * page_size
+
+    query = from a in query, limit: ^page_size, offset: ^offset
+
+    Repo.all(query)
+  end
 end

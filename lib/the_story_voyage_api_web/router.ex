@@ -58,6 +58,8 @@ defmodule TheStoryVoyageApiWeb.Router do
       post "/books", UserBookController, :create
       delete "/books/:id", UserBookController, :delete
 
+      get "/feed", ActivityController, :index
+
       post "/books/:id/tags", UserBookController, :add_tag
       delete "/books/:id/tags/:tag_name", UserBookController, :remove_tag
 
