@@ -21,6 +21,18 @@ defmodule TheStoryVoyageApi.Accounts.User do
     has_many :user_books, TheStoryVoyageApi.Accounts.UserBook
     has_many :books, through: [:user_books, :book]
 
+    # Social associations
+    has_many :following, TheStoryVoyageApi.Social.UserFollow, foreign_key: :follower_id
+    has_many :followers, TheStoryVoyageApi.Social.UserFollow, foreign_key: :followed_id
+    has_many :blocked_users, TheStoryVoyageApi.Social.UserBlock, foreign_key: :blocker_id
+    has_many :blocked_by, TheStoryVoyageApi.Social.UserBlock, foreign_key: :blocked_id
+
+    has_many :sent_friend_requests, TheStoryVoyageApi.Social.FriendRequest,
+      foreign_key: :sender_id
+
+    has_many :received_friend_requests, TheStoryVoyageApi.Social.FriendRequest,
+      foreign_key: :receiver_id
+
     # Virtual field for password input (not stored)
     field :password, :string, virtual: true
 

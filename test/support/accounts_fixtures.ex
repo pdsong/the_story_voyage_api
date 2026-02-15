@@ -8,6 +8,7 @@ defmodule TheStoryVoyageApi.AccountsFixtures do
   def unique_user_email, do: "user#{System.unique_integer([:positive])}@example.com"
   def unique_user_username, do: "user#{System.unique_integer([:positive])}"
 
+  def user_fixture(attrs \\ %{}) do
     {:ok, user} =
       attrs
       |> Enum.into(%{

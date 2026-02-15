@@ -9,6 +9,9 @@ defmodule TheStoryVoyageApi.Accounts do
   @doc "Returns a user by ID."
   def get_user(id), do: Repo.get(User, id)
 
+  @doc "Returns a user by ID or raises."
+  def get_user!(id), do: Repo.get!(User, id)
+
   @doc "Returns a user by email."
   def get_user_by_email(email) do
     Repo.get_by(User, email: email)

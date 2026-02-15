@@ -22,8 +22,6 @@ defmodule TheStoryVoyageApiWeb.Router do
     get "/books/:id", BookController, :show
 
     get "/books/:book_id/reviews", ReviewController, :index
-
-    get "/books/:book_id/reviews", ReviewController, :index
   end
 
   scope "/api/v1", TheStoryVoyageApiWeb do
@@ -38,12 +36,31 @@ defmodule TheStoryVoyageApiWeb.Router do
     scope "/users" do
       get "/me", UserController, :me
       put "/me", UserController, :update_me
+
+      post "/:id/follow", SocialController, :follow
+      delete "/:id/follow", SocialController, :unfollow
+
+      post "/:id/block", SocialController, :block
+      delete "/:id/block", SocialController, :unblock
+
+      post "/:id/friend_request", SocialController, :send_friend_request
+    end
+
+    # Friend Requests actions
+    scope "/friend_requests" do
+      put "/:id/accept", SocialController, :accept_friend_request
+      put "/:id/reject", SocialController, :reject_friend_request
     end
 
     scope "/me" do
       get "/books", UserBookController, :index
       post "/books", UserBookController, :create
       delete "/books/:id", UserBookController, :delete
+
+      get "/followers", SocialController, :followers
+      get "/following", SocialController, :following
+      get "/friends", SocialController, :list_friends
+      get "/friend_requests", SocialController, :list_friend_requests
     end
 
     # Reading Goals
