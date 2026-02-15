@@ -53,9 +53,13 @@ defmodule TheStoryVoyageApiWeb.Router do
     end
 
     scope "/me" do
+      get "/books/tags", UserBookController, :list_tags
       get "/books", UserBookController, :index
       post "/books", UserBookController, :create
       delete "/books/:id", UserBookController, :delete
+
+      post "/books/:id/tags", UserBookController, :add_tag
+      delete "/books/:id/tags/:tag_name", UserBookController, :remove_tag
 
       get "/followers", SocialController, :followers
       get "/following", SocialController, :following

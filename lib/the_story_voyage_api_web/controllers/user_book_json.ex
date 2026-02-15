@@ -23,6 +23,7 @@ defmodule TheStoryVoyageApiWeb.UserBookJSON do
       notes: ub.notes,
       book_id: ub.book_id,
       book: if(Ecto.assoc_loaded?(ub.book), do: BookJSON.data(ub.book), else: nil),
+      tags: if(Ecto.assoc_loaded?(ub.tags), do: Enum.map(ub.tags, & &1.tag_name), else: []),
       review_title: ub.review_title,
       review_content: ub.review_content,
       review_contains_spoilers: ub.review_contains_spoilers,

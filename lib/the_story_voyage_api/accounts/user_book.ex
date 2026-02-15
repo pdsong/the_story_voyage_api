@@ -13,6 +13,8 @@ defmodule TheStoryVoyageApi.Accounts.UserBook do
     belongs_to :user, TheStoryVoyageApi.Accounts.User
     belongs_to :book, TheStoryVoyageApi.Books.Book
 
+    has_many :tags, TheStoryVoyageApi.Reading.UserBookTag
+
     timestamps(type: :utc_datetime)
   end
 

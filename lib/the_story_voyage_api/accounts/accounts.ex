@@ -111,10 +111,21 @@ defmodule TheStoryVoyageApi.Accounts do
     query =
       from ub in UserBook,
         where: ub.user_id == ^user.id,
-        preload: [book: [:authors, :genres, :moods]]
+        preload: [book: [:authors, :genres, :moods], tags: []]
 
     status = params["status"]
     query = if status, do: where(query, [ub], ub.status == ^status), else: query
+
+    tag = params["tag"]
+
+    query =
+      if tag do
+        from ub in query,
+          join: t in assoc(ub, :tags),
+          where: t.tag_name == ^tag
+      else
+        query
+      end
 
     Repo.all(query)
   end

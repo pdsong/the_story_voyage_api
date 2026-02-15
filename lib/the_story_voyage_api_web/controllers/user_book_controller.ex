@@ -35,4 +35,44 @@ defmodule TheStoryVoyageApiWeb.UserBookController do
       send_resp(conn, :no_content, "")
     end
   end
+
+  alias TheStoryVoyageApi.Reading
+
+  def add_tag(conn, %{"id" => book_id, "tag" => tag_name}) do
+    user = conn.assigns.current_user
+    user_book = Accounts.get_user_book(user, book_id)
+
+    if user_book do
+      with {:ok, _tag} <- Reading.add_tag(user_book, tag_name) do
+        conn
+        |> put_status(:created)
+        |> json(%{message: "Tag added successfully"})
+      end
+    else
+      conn
+      |> put_status(:not_found)
+      |> json(%{error: "Book not found in library"})
+    end
+  end
+
+  def remove_tag(conn, %{"id" => book_id, "tag_name" => tag_name}) do
+    user = conn.assigns.current_user
+    user_book = Accounts.get_user_book(user, book_id)
+
+    if user_book do
+      with {:ok, _} <- Reading.remove_tag(user_book, tag_name) do
+        send_resp(conn, :no_content, "")
+      end
+    else
+      conn
+      |> put_status(:not_found)
+      |> json(%{error: "Book not found in library"})
+    end
+  end
+
+  def list_tags(conn, _params) do
+    user = conn.assigns.current_user
+    tags = Reading.list_user_tags(user.id)
+    json(conn, %{data: tags})
+  end
 end
