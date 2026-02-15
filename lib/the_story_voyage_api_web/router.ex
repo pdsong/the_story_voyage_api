@@ -22,6 +22,8 @@ defmodule TheStoryVoyageApiWeb.Router do
     get "/books/:id", BookController, :show
 
     get "/books/:book_id/reviews", ReviewController, :index
+
+    get "/books/:book_id/reviews", ReviewController, :index
   end
 
   scope "/api/v1", TheStoryVoyageApiWeb do
@@ -33,6 +35,11 @@ defmodule TheStoryVoyageApiWeb.Router do
     get "/stats/moods", StatsController, :moods
 
     # Protected routes (Logged in users)
+    scope "/users" do
+      get "/me", UserController, :me
+      put "/me", UserController, :update_me
+    end
+
     scope "/me" do
       get "/books", UserBookController, :index
       post "/books", UserBookController, :create
@@ -53,6 +60,13 @@ defmodule TheStoryVoyageApiWeb.Router do
       post "/", BookController, :create
       put "/:id", BookController, :update
     end
+  end
+
+  scope "/api/v1", TheStoryVoyageApiWeb do
+    pipe_through :api
+
+    get "/users/:username", UserController, :show
+    get "/users/:username/books", UserController, :books
   end
 
   pipeline :ensure_admin_or_librarian do

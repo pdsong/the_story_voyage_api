@@ -74,6 +74,15 @@ defmodule TheStoryVoyageApi.Accounts.User do
     |> hash_password()
   end
 
+  @doc "Changeset for user profile updates (self-service)."
+  def profile_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:display_name, :bio, :avatar_url, :location, :privacy_level])
+    |> validate_length(:display_name, max: 50)
+    |> validate_length(:bio, max: 160)
+    |> validate_inclusion(:privacy_level, ["public", "friends_only", "private"])
+  end
+
   defp hash_password(changeset) do
     case get_change(changeset, :password) do
       nil ->

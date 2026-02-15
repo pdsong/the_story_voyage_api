@@ -62,6 +62,18 @@ defmodule TheStoryVoyageApi.Accounts do
     Repo.get_by(User, reset_password_token: token)
   end
 
+  @doc "Updates a user's profile."
+  def update_user_profile(%User{} = user, attrs) do
+    user
+    |> User.profile_changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc "Gets a public user profile by username. Respects privacy settings (implementation details in controller usually, but here we just fetch)."
+  def get_public_user(username) do
+    Repo.get_by(User, username: username)
+  end
+
   @doc "Generates a reset token for the user."
   def create_reset_token(user) do
     token = :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
