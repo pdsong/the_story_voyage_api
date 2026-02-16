@@ -12,8 +12,10 @@ defmodule TheStoryVoyageApi.Application do
       TheStoryVoyageApi.Repo,
       {Ecto.Migrator,
        repos: Application.fetch_env!(:the_story_voyage_api, :ecto_repos), skip: skip_migrations?()},
-      {DNSCluster, query: Application.get_env(:the_story_voyage_api, :dns_cluster_query) || :ignore},
+      {DNSCluster,
+       query: Application.get_env(:the_story_voyage_api, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: TheStoryVoyageApi.PubSub},
+      TheStoryVoyageApiWeb.Plugs.RateLimiter,
       # Start a worker by calling: TheStoryVoyageApi.Worker.start_link(arg)
       # {TheStoryVoyageApi.Worker, arg},
       # Start to serve requests, typically the last entry

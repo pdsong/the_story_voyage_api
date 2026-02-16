@@ -3,6 +3,7 @@ defmodule TheStoryVoyageApiWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug TheStoryVoyageApiWeb.Plugs.RateLimitPlug
   end
 
   pipeline :auth do
