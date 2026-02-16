@@ -30,7 +30,12 @@ defmodule TheStoryVoyageApiWeb.BookJSON do
       authors: for(author <- book.authors || [], do: %{id: author.id, name: author.name}),
       genres:
         for(genre <- book.genres || [], do: %{id: genre.id, name: genre.name, slug: genre.slug}),
-      moods: for(mood <- book.moods || [], do: %{id: mood.id, name: mood.name, slug: mood.slug})
+      moods: for(mood <- book.moods || [], do: %{id: mood.id, name: mood.name, slug: mood.slug}),
+      content_warnings:
+        for(
+          cw <- book.content_warnings || [],
+          do: %{id: cw.id, name: cw.name, category: cw.category}
+        )
     }
   end
 end

@@ -119,6 +119,9 @@ defmodule TheStoryVoyageApiWeb.Router do
       post "/", BookController, :create
       put "/:id", BookController, :update
     end
+
+    # New endpoint for adding content warnings (Authenticated users)
+    post "/books/:book_id/content_warnings", BookContentWarningController, :create
   end
 
   scope "/api/v1", TheStoryVoyageApiWeb do

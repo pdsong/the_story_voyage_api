@@ -32,6 +32,10 @@ defmodule TheStoryVoyageApi.Books.Book do
       join_through: "book_moods",
       on_replace: :delete
 
+    many_to_many :content_warnings, TheStoryVoyageApi.Books.ContentWarning,
+      join_through: TheStoryVoyageApi.Books.BookContentWarning,
+      on_replace: :delete
+
     timestamps(type: :utc_datetime)
   end
 

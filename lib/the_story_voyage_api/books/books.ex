@@ -12,14 +12,14 @@ defmodule TheStoryVoyageApi.Books do
   def get_book!(id) do
     Book
     |> Repo.get!(id)
-    |> Repo.preload([:authors, :genres, :moods, :editions, :series])
+    |> Repo.preload([:authors, :genres, :moods, :editions, :series, :content_warnings])
   end
 
   @doc "Returns a book by ID, preloading associations."
   def get_book(id) do
     Book
     |> Repo.get(id)
-    |> Repo.preload([:authors, :genres, :moods, :editions, :series])
+    |> Repo.preload([:authors, :genres, :moods, :editions, :series, :content_warnings])
   end
 
   @doc "Lists books with optional filtering (search, genre, mood) and pagination."
@@ -35,7 +35,7 @@ defmodule TheStoryVoyageApi.Books do
     |> offset(^offset)
     |> order_by(desc: :inserted_at)
     |> Repo.all()
-    |> Repo.preload([:authors, :genres, :moods])
+    |> Repo.preload([:authors, :genres, :moods, :content_warnings])
   end
 
   defp search_by_keyword(query, nil), do: query
@@ -154,6 +154,22 @@ defmodule TheStoryVoyageApi.Books do
 
   def list_content_warnings do
     Repo.all(ContentWarning)
+  end
+
+  def create_content_warning(attrs) do
+    %ContentWarning{}
+    |> ContentWarning.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  def add_content_warning(book, content_warning_id, user) do
+    %TheStoryVoyageApi.Books.BookContentWarning{}
+    |> TheStoryVoyageApi.Books.BookContentWarning.changeset(%{
+      book_id: book.id,
+      content_warning_id: content_warning_id,
+      reported_by_user_id: user.id
+    })
+    |> Repo.insert()
   end
 
   # ========== Series ==========
