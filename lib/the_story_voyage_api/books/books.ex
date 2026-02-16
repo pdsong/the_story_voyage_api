@@ -31,9 +31,13 @@ defmodule TheStoryVoyageApi.Books do
     |> search_by_keyword(params["q"])
     |> filter_by_genre(params["genre_id"])
     |> filter_by_mood(params["mood_id"])
+    |> filter_by_rating(params["min_rating"])
+    |> filter_by_pages(params["min_pages"], params["max_pages"])
+    |> filter_by_publication_year(params["published_year_start"], params["published_year_end"])
+    |> filter_by_author(params["author_id"])
+    |> apply_sorting(params["sort_by"])
     |> limit(^limit)
     |> offset(^offset)
-    |> order_by(desc: :inserted_at)
     |> Repo.all()
     |> Repo.preload([:authors, :genres, :moods, :content_warnings])
   end
@@ -63,6 +67,57 @@ defmodule TheStoryVoyageApi.Books do
       join: m in assoc(b, :moods),
       where: m.id == ^mood_id
   end
+
+  defp filter_by_rating(query, nil), do: query
+  defp filter_by_rating(query, ""), do: query
+
+  defp filter_by_rating(query, min_rating) do
+    from b in query, where: b.average_rating >= ^min_rating
+  end
+
+  defp filter_by_pages(query, nil, nil), do: query
+  defp filter_by_pages(query, min, nil), do: from(b in query, where: b.pages >= ^min)
+  defp filter_by_pages(query, nil, max), do: from(b in query, where: b.pages <= ^max)
+
+  defp filter_by_pages(query, min, max) do
+    from b in query, where: b.pages >= ^min and b.pages <= ^max
+  end
+
+  defp filter_by_publication_year(query, nil, nil), do: query
+
+  defp filter_by_publication_year(query, start_year, nil) do
+    start_date = Date.new!(String.to_integer(start_year), 1, 1)
+    from b in query, where: b.first_published >= ^start_date
+  end
+
+  defp filter_by_publication_year(query, nil, end_year) do
+    end_date = Date.new!(String.to_integer(end_year), 12, 31)
+    from b in query, where: b.first_published <= ^end_date
+  end
+
+  defp filter_by_publication_year(query, start_year, end_year) do
+    start_date = Date.new!(String.to_integer(start_year), 1, 1)
+    end_date = Date.new!(String.to_integer(end_year), 12, 31)
+    from b in query, where: b.first_published >= ^start_date and b.first_published <= ^end_date
+  end
+
+  defp filter_by_author(query, nil), do: query
+
+  defp filter_by_author(query, author_id) do
+    from b in query,
+      join: a in assoc(b, :authors),
+      where: a.id == ^author_id
+  end
+
+  defp apply_sorting(query, nil), do: order_by(query, desc: :inserted_at)
+  defp apply_sorting(query, "newest"), do: order_by(query, desc: :first_published)
+  defp apply_sorting(query, "oldest"), do: order_by(query, asc: :first_published)
+
+  defp apply_sorting(query, "top_rated"),
+    do: order_by(query, desc: :average_rating, desc: :ratings_count)
+
+  defp apply_sorting(query, "most_reviewed"), do: order_by(query, desc: :ratings_count)
+  defp apply_sorting(query, _), do: order_by(query, desc: :inserted_at)
 
   @doc "Creates a new book with associations."
   def create_book(attrs) do
