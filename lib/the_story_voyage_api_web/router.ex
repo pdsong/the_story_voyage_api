@@ -77,6 +77,17 @@ defmodule TheStoryVoyageApiWeb.Router do
       get "/friend_requests", SocialController, :list_friend_requests
     end
 
+    scope "/clubs" do
+      get "/", ClubController, :index
+      post "/", ClubController, :create
+      get "/:id", ClubController, :show
+      post "/:id/join", ClubController, :join
+
+      get "/:id/threads", ClubController, :list_threads
+      post "/:id/threads", ClubController, :create_thread
+      post "/:id/threads/:thread_id/vote", ClubController, :vote_thread
+    end
+
     # Reading Goals
     resources "/reading_goals", ReadingGoalController, only: [:index, :create]
 
