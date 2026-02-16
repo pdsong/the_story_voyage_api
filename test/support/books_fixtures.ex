@@ -16,4 +16,16 @@ defmodule TheStoryVoyageApi.BooksFixtures do
 
     book
   end
+
+  def genre_fixture(attrs \\ %{}) do
+    {:ok, genre} =
+      attrs
+      |> Enum.into(%{
+        "name" => "Some Genre #{System.unique_integer()}",
+        "slug" => "some-genre-#{System.unique_integer()}"
+      })
+      |> Books.create_genre()
+
+    genre
+  end
 end

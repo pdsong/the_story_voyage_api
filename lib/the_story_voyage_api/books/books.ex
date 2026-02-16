@@ -197,4 +197,56 @@ defmodule TheStoryVoyageApi.Books do
     |> where(book_id: ^book_id)
     |> Repo.all()
   end
+
+  # ========== Recommendations ==========
+
+  def get_recommendations(user_id) do
+    highly_rated_books = TheStoryVoyageApi.Reading.get_user_highly_rated_books(user_id)
+    shelved_book_ids = TheStoryVoyageApi.Reading.list_user_book_ids(user_id)
+
+    if Enum.empty?(highly_rated_books) do
+      # Fallback: Top rated books
+      get_top_rated_books(shelved_book_ids)
+    else
+      # Content-based filtering
+      get_similar_books(highly_rated_books, shelved_book_ids)
+    end
+  end
+
+  defp get_top_rated_books(excluded_ids) do
+    from(b in Book,
+      where: b.id not in ^excluded_ids,
+      where: b.ratings_count >= 5,
+      order_by: [desc: b.average_rating, desc: b.ratings_count],
+      limit: 20,
+      preload: [:authors, :genres, :moods, :content_warnings]
+    )
+    |> Repo.all()
+  end
+
+  defp get_similar_books(source_books, excluded_ids) do
+    genre_ids =
+      source_books
+      |> Enum.flat_map(& &1.genres)
+      |> Enum.map(& &1.id)
+      |> Enum.uniq()
+
+    mood_ids =
+      source_books
+      |> Enum.flat_map(& &1.moods)
+      |> Enum.map(& &1.id)
+      |> Enum.uniq()
+
+    from(b in Book,
+      join: g in assoc(b, :genres),
+      left_join: m in assoc(b, :moods),
+      where: b.id not in ^excluded_ids,
+      where: g.id in ^genre_ids or m.id in ^mood_ids,
+      group_by: b.id,
+      order_by: [desc: b.average_rating],
+      limit: 20,
+      preload: [:authors, :genres, :moods, :content_warnings]
+    )
+    |> Repo.all()
+  end
 end

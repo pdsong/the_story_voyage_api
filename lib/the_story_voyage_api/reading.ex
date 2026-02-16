@@ -57,4 +57,27 @@ defmodule TheStoryVoyageApi.Reading do
 
     Repo.all(query)
   end
+
+  @doc """
+  Returns a list of books rated >= 4 by the user.
+  """
+  def get_user_highly_rated_books(user_id) do
+    from(ub in UserBook,
+      where: ub.user_id == ^user_id and ub.rating >= 4.0,
+      preload: [book: [:genres, :moods]]
+    )
+    |> Repo.all()
+    |> Enum.map(& &1.book)
+  end
+
+  @doc """
+  Returns a list of book IDs that the user has any interaction with (shelved/read/etc).
+  """
+  def list_user_book_ids(user_id) do
+    from(ub in UserBook,
+      where: ub.user_id == ^user_id,
+      select: ub.book_id
+    )
+    |> Repo.all()
+  end
 end
