@@ -64,4 +64,23 @@ defmodule TheStoryVoyageApi.CommunitiesFixtures do
 
     participant
   end
+
+  @doc """
+  Generate a readalong.
+  """
+  def readalong_fixture(attrs \\ %{}) do
+    owner = attrs[:owner] || AccountsFixtures.user_fixture()
+    book = attrs[:book] || BooksFixtures.book_fixture()
+
+    {:ok, readalong} =
+      attrs
+      |> Enum.into(%{
+        title: "some title",
+        start_date: ~D[2026-04-01],
+        book_id: book.id
+      })
+      |> then(&Communities.create_readalong(owner, &1))
+
+    readalong
+  end
 end

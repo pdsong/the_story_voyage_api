@@ -376,4 +376,89 @@ defmodule TheStoryVoyageApi.Communities do
       ) do
     BuddyReadParticipant.changeset(buddy_read_participant, attrs)
   end
+
+  alias TheStoryVoyageApi.Communities.{
+    Readalong,
+    ReadalongSection,
+    ReadalongParticipant,
+    ReadalongPost
+  }
+
+  # --- Readalongs ---
+
+  def list_readalongs do
+    Repo.all(from r in Readalong, preload: [:book, :owner], order_by: [desc: r.start_date])
+  end
+
+  def get_readalong!(id) do
+    Repo.get!(Readalong, id)
+    |> Repo.preload([
+      :book,
+      :owner,
+      sections: from(s in ReadalongSection, order_by: s.unlock_date)
+    ])
+  end
+
+  def create_readalong(user, attrs) do
+    Ecto.Multi.new()
+    |> Ecto.Multi.insert(:readalong, fn _ ->
+      %Readalong{owner_id: user.id}
+      |> Readalong.changeset(attrs)
+    end)
+    |> Ecto.Multi.insert(:participant, fn %{readalong: readalong} ->
+      ReadalongParticipant.changeset(%ReadalongParticipant{}, %{
+        readalong_id: readalong.id,
+        user_id: user.id
+      })
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{readalong: readalong}} -> {:ok, readalong}
+      {:error, _, changeset, _} -> {:error, changeset}
+    end
+  end
+
+  def join_readalong(user, readalong_id) do
+    %ReadalongParticipant{}
+    |> ReadalongParticipant.changeset(%{readalong_id: readalong_id, user_id: user.id})
+    |> Repo.insert()
+  end
+
+  def is_readalong_participant?(user_id, readalong_id) do
+    Repo.exists?(
+      from rp in ReadalongParticipant,
+        where: rp.user_id == ^user_id and rp.readalong_id == ^readalong_id
+    )
+  end
+
+  # --- Readalong Sections/Posts ---
+
+  def get_readalong_section!(id), do: Repo.get!(ReadalongSection, id)
+
+  def list_readalong_posts(section_id) do
+    Repo.all(
+      from p in ReadalongPost,
+        where: p.readalong_section_id == ^section_id,
+        order_by: [asc: p.inserted_at],
+        preload: [:user]
+    )
+  end
+
+  def create_readalong_post(user, section_id, attrs) do
+    section = get_readalong_section!(section_id)
+
+    if DateTime.compare(DateTime.utc_now(), section.unlock_date) == :lt do
+      {:error, :locked}
+    else
+      # Normalize attrs to string keys
+      normalized_attrs = Map.new(attrs, fn {k, v} -> {to_string(k), v} end)
+
+      params =
+        Map.merge(normalized_attrs, %{"user_id" => user.id, "readalong_section_id" => section_id})
+
+      %ReadalongPost{}
+      |> ReadalongPost.changeset(params)
+      |> Repo.insert()
+    end
+  end
 end

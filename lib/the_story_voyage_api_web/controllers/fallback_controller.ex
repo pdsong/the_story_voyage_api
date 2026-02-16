@@ -34,4 +34,11 @@ defmodule TheStoryVoyageApiWeb.FallbackController do
     |> put_status(:forbidden)
     |> json(%{errors: %{detail: "Forbidden"}})
   end
+
+  def call(conn, {:error, :locked}) do
+    conn
+    # 423
+    |> put_status(:locked)
+    |> json(%{errors: %{detail: "Content is locked until the scheduled date"}})
+  end
 end

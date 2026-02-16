@@ -104,6 +104,15 @@ defmodule TheStoryVoyageApiWeb.Router do
       post "/:id/join", BuddyReadController, :join
     end
 
+    # Readalongs
+    resources "/readalongs", ReadalongController, only: [:index, :create, :show] do
+      post "/join", ReadalongController, :join
+    end
+
+    scope "/readalong_sections/:section_id" do
+      resources "/posts", ReadalongPostController, only: [:index, :create]
+    end
+
     # Admin/Librarian routes
     scope "/books" do
       pipe_through :ensure_admin_or_librarian
