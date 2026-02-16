@@ -53,7 +53,8 @@ defmodule TheStoryVoyageApi.MixProject do
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
       {:bcrypt_elixir, "~> 3.0"},
-      {:joken, "~> 2.6"}
+      {:joken, "~> 2.6"},
+      {:open_api_spex, "~> 3.18"}
     ]
   end
 

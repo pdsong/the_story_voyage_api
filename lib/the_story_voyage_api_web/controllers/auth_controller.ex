@@ -6,7 +6,30 @@ defmodule TheStoryVoyageApiWeb.AuthController do
 
   alias TheStoryVoyageApi.{Accounts, Token}
 
+  use OpenApiSpex.ControllerSpecs
+
+  tags(["Auth"])
+
   action_fallback TheStoryVoyageApiWeb.FallbackController
+
+  operation(:login,
+    summary: "Login a user",
+    parameters: [],
+    request_body:
+      {"User credentials", "application/json",
+       %OpenApiSpex.Schema{
+         type: :object,
+         properties: %{
+           email: %OpenApiSpex.Schema{type: :string},
+           password: %OpenApiSpex.Schema{type: :string}
+         },
+         required: [:email, :password]
+       }},
+    responses: %{
+      200 => {"Login successful", "application/json", TheStoryVoyageApiWeb.Schemas.UserResponse},
+      401 => {"Unauthorized", "application/json", %OpenApiSpex.Schema{type: :object}}
+    }
+  )
 
   @doc "POST /api/v1/auth/login"
   def login(conn, %{"email" => email, "password" => password}) do
@@ -26,6 +49,17 @@ defmodule TheStoryVoyageApiWeb.AuthController do
       })
     end
   end
+
+  operation(:register,
+    summary: "Register a new user",
+    parameters: [],
+    request_body:
+      {"User attributes", "application/json", TheStoryVoyageApiWeb.Schemas.UserRegister},
+    responses: %{
+      201 => {"User created", "application/json", TheStoryVoyageApiWeb.Schemas.UserResponse},
+      422 => {"Unprocessable Entity", "application/json", %OpenApiSpex.Schema{type: :object}}
+    }
+  )
 
   @doc "POST /api/v1/auth/register"
   def register(conn, %{"user" => user_params}) do

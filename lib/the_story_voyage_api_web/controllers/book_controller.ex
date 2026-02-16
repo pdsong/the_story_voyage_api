@@ -7,10 +7,38 @@ defmodule TheStoryVoyageApiWeb.BookController do
   action_fallback TheStoryVoyageApiWeb.FallbackController
 
   # Public access
+  use OpenApiSpex.ControllerSpecs
+
+  tags(["Books"])
+
+  @doc "GET /api/v1/books"
+  operation(:index,
+    summary: "List books",
+    parameters: [
+      min_rating: [in: :query, type: :number, description: "Minimum rating"],
+      genre_id: [in: :query, type: :integer, description: "Filter by genre ID"]
+    ],
+    responses: %{
+      200 => {"List of books", "application/json", TheStoryVoyageApiWeb.Schemas.BookListResponse}
+    }
+  )
+
   def index(conn, params) do
     books = Books.list_books(params)
     render(conn, :index, books: books)
   end
+
+  @doc "GET /api/v1/books/:id"
+  operation(:show,
+    summary: "Get a book by ID",
+    parameters: [
+      id: [in: :path, type: :integer, description: "Book ID", required: true]
+    ],
+    responses: %{
+      200 => {"Book details", "application/json", TheStoryVoyageApiWeb.Schemas.BookResponse},
+      404 => {"Not Found", "application/json", %OpenApiSpex.Schema{type: :object}}
+    }
+  )
 
   def show(conn, %{"id" => id}) do
     book = Books.get_book(id)

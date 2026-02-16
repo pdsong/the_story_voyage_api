@@ -3,11 +3,19 @@ defmodule TheStoryVoyageApiWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug OpenApiSpex.Plug.PutApiSpec, module: TheStoryVoyageApiWeb.ApiSpec
     plug TheStoryVoyageApiWeb.Plugs.RateLimitPlug
   end
 
   pipeline :auth do
     plug TheStoryVoyageApiWeb.AuthPlug
+  end
+
+  scope "/api" do
+    pipe_through :api
+
+    get "/openapi", OpenApiSpex.Plug.RenderSpec, spec: TheStoryVoyageApiWeb.ApiSpec
+    get "/swagger", OpenApiSpex.Plug.SwaggerUI, path: "/api/openapi"
   end
 
   scope "/api/v1", TheStoryVoyageApiWeb do
