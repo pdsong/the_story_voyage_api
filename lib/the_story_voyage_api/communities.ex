@@ -7,6 +7,8 @@ defmodule TheStoryVoyageApi.Communities do
   alias TheStoryVoyageApi.Repo
 
   alias TheStoryVoyageApi.Communities.{Club, ClubMember, ClubThread, ThreadVote}
+  alias TheStoryVoyageApi.Communities.{BuddyRead, BuddyReadParticipant}
+  alias TheStoryVoyageApi.Social
 
   # --- Clubs ---
 
@@ -138,5 +140,240 @@ defmodule TheStoryVoyageApi.Communities do
       {:ok, %{vote: _vote}} -> {:ok, :voted}
       {:error, :vote, changeset, _} -> {:error, changeset}
     end
+  end
+
+  alias TheStoryVoyageApi.Communities.BuddyRead
+
+  @doc """
+  Returns the list of buddy_reads visible to the user.
+  """
+  def list_visible_buddy_reads(user) do
+    participant_buddy_read_ids =
+      from(p in BuddyReadParticipant, where: p.user_id == ^user.id, select: p.buddy_read_id)
+
+    friend_ids_query =
+      from(uf in TheStoryVoyageApi.Social.UserFollow,
+        where: uf.follower_id == ^user.id and uf.is_friend == true,
+        select: uf.followed_id
+      )
+
+    query =
+      from b in BuddyRead,
+        where:
+          b.id in subquery(participant_buddy_read_ids) or
+            b.creator_id in subquery(friend_ids_query) or
+            b.creator_id == ^user.id,
+        order_by: [desc: b.inserted_at],
+        preload: [:book, :creator]
+
+    Repo.all(query)
+  end
+
+  def get_buddy_read!(id) do
+    buddy_read = Repo.get!(BuddyRead, id) |> Repo.preload([:book, :creator])
+
+    participants =
+      Repo.all(from p in BuddyReadParticipant, where: p.buddy_read_id == ^id, preload: [:user])
+
+    Map.put(buddy_read, :participants, participants)
+  end
+
+  def create_buddy_read(user, attrs) do
+    Ecto.Multi.new()
+    |> Ecto.Multi.insert(
+      :buddy_read,
+      BuddyRead.changeset(%BuddyRead{creator_id: user.id}, attrs)
+    )
+    |> Ecto.Multi.insert(:participant, fn %{buddy_read: buddy_read} ->
+      BuddyReadParticipant.changeset(struct(BuddyReadParticipant), %{
+        buddy_read_id: buddy_read.id,
+        user_id: user.id
+      })
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{buddy_read: buddy_read}} -> {:ok, buddy_read}
+      {:error, _, changeset, _} -> {:error, changeset}
+    end
+  end
+
+  def join_buddy_read(user, buddy_read_id) do
+    buddy_read = Repo.get(BuddyRead, buddy_read_id)
+
+    if buddy_read do
+      count =
+        Repo.aggregate(
+          from(p in BuddyReadParticipant, where: p.buddy_read_id == ^buddy_read.id),
+          :count,
+          :id
+        )
+
+      is_creator = buddy_read.creator_id == user.id
+      is_friend = Social.is_friend?(user.id, buddy_read.creator_id)
+
+      cond do
+        count >= 9 ->
+          {:error, :full}
+
+        not (is_creator or is_friend) ->
+          {:error, :forbidden}
+
+        true ->
+          struct(BuddyReadParticipant)
+          |> BuddyReadParticipant.changeset(%{
+            buddy_read_id: buddy_read.id,
+            user_id: user.id
+          })
+          |> Repo.insert()
+      end
+    else
+      {:error, :not_found}
+    end
+  end
+
+  @doc """
+  Updates a buddy_read.
+
+  ## Examples
+
+      iex> update_buddy_read(buddy_read, %{field: new_value})
+      {:ok, %BuddyRead{}}
+
+      iex> update_buddy_read(buddy_read, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_buddy_read(%BuddyRead{} = buddy_read, attrs) do
+    buddy_read
+    |> BuddyRead.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a buddy_read.
+
+  ## Examples
+
+      iex> delete_buddy_read(buddy_read)
+      {:ok, %BuddyRead{}}
+
+      iex> delete_buddy_read(buddy_read)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def delete_buddy_read(%BuddyRead{} = buddy_read) do
+    Repo.delete(buddy_read)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking buddy_read changes.
+
+  ## Examples
+
+      iex> change_buddy_read(buddy_read)
+      %Ecto.Changeset{data: %BuddyRead{}}
+
+  """
+  def change_buddy_read(%BuddyRead{} = buddy_read, attrs \\ %{}) do
+    BuddyRead.changeset(buddy_read, attrs)
+  end
+
+  alias TheStoryVoyageApi.Communities.BuddyReadParticipant
+
+  @doc """
+  Returns the list of buddy_read_participants.
+
+  ## Examples
+
+      iex> list_buddy_read_participants()
+      [%BuddyReadParticipant{}, ...]
+
+  """
+  def list_buddy_read_participants do
+    Repo.all(BuddyReadParticipant)
+  end
+
+  @doc """
+  Gets a single buddy_read_participant.
+
+  Raises `Ecto.NoResultsError` if the Buddy read participant does not exist.
+
+  ## Examples
+
+      iex> get_buddy_read_participant!(123)
+      %BuddyReadParticipant{}
+
+      iex> get_buddy_read_participant!(456)
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_buddy_read_participant!(id), do: Repo.get!(BuddyReadParticipant, id)
+
+  @doc """
+  Creates a buddy_read_participant.
+
+  ## Examples
+
+      iex> create_buddy_read_participant(%{field: value})
+      {:ok, %BuddyReadParticipant{}}
+
+      iex> create_buddy_read_participant(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_buddy_read_participant(attrs) do
+    %BuddyReadParticipant{}
+    |> BuddyReadParticipant.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Updates a buddy_read_participant.
+
+  ## Examples
+
+      iex> update_buddy_read_participant(buddy_read_participant, %{field: new_value})
+      {:ok, %BuddyReadParticipant{}}
+
+      iex> update_buddy_read_participant(buddy_read_participant, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_buddy_read_participant(%BuddyReadParticipant{} = buddy_read_participant, attrs) do
+    buddy_read_participant
+    |> BuddyReadParticipant.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a buddy_read_participant.
+
+  ## Examples
+
+      iex> delete_buddy_read_participant(buddy_read_participant)
+      {:ok, %BuddyReadParticipant{}}
+
+      iex> delete_buddy_read_participant(buddy_read_participant)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def delete_buddy_read_participant(%BuddyReadParticipant{} = buddy_read_participant) do
+    Repo.delete(buddy_read_participant)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking buddy_read_participant changes.
+
+  ## Examples
+
+      iex> change_buddy_read_participant(buddy_read_participant)
+      %Ecto.Changeset{data: %BuddyReadParticipant{}}
+
+  """
+  def change_buddy_read_participant(
+        %BuddyReadParticipant{} = buddy_read_participant,
+        attrs \\ %{}
+      ) do
+    BuddyReadParticipant.changeset(buddy_read_participant, attrs)
   end
 end

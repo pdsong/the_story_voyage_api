@@ -96,6 +96,14 @@ defmodule TheStoryVoyageApiWeb.Router do
     post "/challenges/:id/join", ChallengeController, :join
     post "/challenges/:id/entries", ChallengeController, :add_entry
 
+    # Buddy Reads
+    scope "/buddy_reads" do
+      get "/", BuddyReadController, :index
+      post "/", BuddyReadController, :create
+      get "/:id", BuddyReadController, :show
+      post "/:id/join", BuddyReadController, :join
+    end
+
     # Admin/Librarian routes
     scope "/books" do
       pipe_through :ensure_admin_or_librarian

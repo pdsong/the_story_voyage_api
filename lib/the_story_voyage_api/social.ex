@@ -257,6 +257,14 @@ defmodule TheStoryVoyageApi.Social do
     )
   end
 
+  def is_friend?(user_id, friend_id) do
+    Repo.exists?(
+      from uf in UserFollow,
+        where:
+          uf.follower_id == ^user_id and uf.followed_id == ^friend_id and uf.is_friend == true
+    )
+  end
+
   alias TheStoryVoyageApi.Social.Activity
 
   ## Activities

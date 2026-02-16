@@ -116,4 +116,88 @@ defmodule TheStoryVoyageApi.CommunitiesTest do
       assert changeset.errors[:thread_id]
     end
   end
+
+  describe "buddy_reads" do
+    alias TheStoryVoyageApi.Communities.BuddyRead
+    import TheStoryVoyageApi.CommunitiesFixtures
+    import TheStoryVoyageApi.BooksFixtures
+
+    test "create_buddy_read/2 creates read and adds creator as participant" do
+      user = user_fixture()
+      book = book_fixture()
+
+      assert {:ok, buddy_read} =
+               Communities.create_buddy_read(user, %{
+                 start_date: ~D[2026-02-15],
+                 book_id: book.id
+               })
+
+      assert buddy_read.creator_id == user.id
+      assert buddy_read.status == "active"
+
+      # Check participant
+      participants = Communities.list_buddy_read_participants()
+      assert length(participants) == 1
+      assert hd(participants).user_id == user.id
+    end
+
+    test "join_buddy_read/2 allows joining if capacity < 9" do
+      creator = user_fixture()
+      buddy_read = buddy_read_fixture(creator: creator)
+
+      # Creator is already participant (1)
+
+      new_user = user_fixture()
+      # Simulate friendship or openness?
+      # Current logic: not (is_creator or is_friend) -> forbidden.
+      # So we need to be friend.
+      # Follow back to make it friend?
+      TheStoryVoyageApi.Social.follow_user(creator, new_user)
+      # Wait, is_friend? checks if user follows creator?
+      # Logic: is_friend?(user.id, buddy_read.creator_id)
+      # Does user follow creator with is_friend=true?
+      # We need mutual follow to be is_friend=true.
+
+      # Set up friendship
+      TheStoryVoyageApi.Repo.insert!(%TheStoryVoyageApi.Social.UserFollow{
+        follower_id: new_user.id,
+        followed_id: creator.id,
+        is_friend: true
+      })
+
+      assert {:ok, _part} = Communities.join_buddy_read(new_user, buddy_read.id)
+    end
+
+    test "join_buddy_read/2 forbidden if not friend" do
+      creator = user_fixture()
+      buddy_read = buddy_read_fixture(creator: creator)
+      stranger = user_fixture()
+
+      assert {:error, :forbidden} = Communities.join_buddy_read(stranger, buddy_read.id)
+    end
+
+    test "list_visible_buddy_reads/1 returns participated or friend's reads" do
+      creator = user_fixture()
+      friend = user_fixture()
+      stranger = user_fixture()
+
+      # Friendship
+      TheStoryVoyageApi.Repo.insert!(%TheStoryVoyageApi.Social.UserFollow{
+        follower_id: friend.id,
+        followed_id: creator.id,
+        is_friend: true
+      })
+
+      br = buddy_read_fixture(creator: creator)
+
+      # Creator sees it
+      assert Communities.list_visible_buddy_reads(creator) |> length() == 1
+
+      # Friend sees it
+      assert Communities.list_visible_buddy_reads(friend) |> length() == 1
+
+      # Stranger sees nothing
+      assert Communities.list_visible_buddy_reads(stranger) == []
+    end
+  end
 end

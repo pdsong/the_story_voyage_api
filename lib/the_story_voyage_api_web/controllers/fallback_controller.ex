@@ -28,4 +28,10 @@ defmodule TheStoryVoyageApiWeb.FallbackController do
     |> put_status(:unauthorized)
     |> json(%{errors: %{detail: "Unauthorized"}})
   end
+
+  def call(conn, {:error, :forbidden}) do
+    conn
+    |> put_status(:forbidden)
+    |> json(%{errors: %{detail: "Forbidden"}})
+  end
 end
