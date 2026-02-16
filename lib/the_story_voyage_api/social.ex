@@ -12,16 +12,6 @@ defmodule TheStoryVoyageApi.Social do
 
   ## Follows
 
-  def follow_user(%User{id: follower_id}, %User{id: followed_id}) do
-    if follower_id == followed_id do
-      {:error, :cannot_follow_self}
-    else
-      %UserFollow{}
-      |> UserFollow.changeset(%{follower_id: follower_id, followed_id: followed_id})
-      |> Repo.insert()
-    end
-  end
-
   def unfollow_user(%User{id: follower_id}, %User{id: followed_id}) do
     from(uf in UserFollow,
       where: uf.follower_id == ^follower_id and uf.followed_id == ^followed_id
@@ -36,6 +26,128 @@ defmodule TheStoryVoyageApi.Social do
       from uf in UserFollow,
         where: uf.follower_id == ^follower_id and uf.followed_id == ^followed_id
     )
+  end
+
+  def follow_user(%User{id: follower_id}, %User{id: followed_id}) do
+    if follower_id == followed_id do
+      {:error, :cannot_follow_self}
+    else
+      %UserFollow{}
+      |> UserFollow.changeset(%{follower_id: follower_id, followed_id: followed_id})
+      |> Repo.insert()
+      |> case do
+        {:ok, follow} ->
+          TheStoryVoyageApi.Notifications.create_notification(%{
+            recipient_id: followed_id,
+            actor_id: follower_id,
+            type: "new_follower"
+          })
+
+          {:ok, follow}
+
+        error ->
+          error
+      end
+    end
+  end
+
+  # ... (blocks unchanged) ...
+
+  def send_friend_request(%User{id: sender_id}, %User{id: receiver_id}) do
+    if sender_id == receiver_id do
+      {:error, :cannot_friend_self}
+    else
+      if blocking?(receiver_id, sender_id) or blocking?(sender_id, receiver_id) do
+        {:error, :blocked}
+      else
+        %FriendRequest{}
+        |> FriendRequest.changeset(%{
+          sender_id: sender_id,
+          receiver_id: receiver_id,
+          status: "pending"
+        })
+        |> Repo.insert()
+        |> case do
+          {:ok, request} ->
+            TheStoryVoyageApi.Notifications.create_notification(%{
+              recipient_id: receiver_id,
+              actor_id: sender_id,
+              type: "friend_request_received",
+              data: %{request_id: request.id}
+            })
+
+            {:ok, request}
+
+          error ->
+            error
+        end
+      end
+    end
+  end
+
+  def accept_friend_request(request_id, %User{id: receiver_id}) do
+    request = Repo.get(FriendRequest, request_id)
+
+    cond do
+      is_nil(request) ->
+        {:error, :not_found}
+
+      request.receiver_id != receiver_id ->
+        {:error, :unauthorized}
+
+      request.status != "pending" ->
+        {:error, :already_processed}
+
+      true ->
+        Repo.transaction(fn ->
+          # 1. Update request status
+          request
+          |> FriendRequest.changeset(%{status: "accepted"})
+          |> Repo.update!()
+
+          # 2. Auto-follow mutually
+
+          # Check and create follow A -> B
+          unless following?(request.sender_id, request.receiver_id) do
+            # ... existing follow logic ...
+            # We might skip notification here since they are friends now?
+            # Or stick to specific "friend_request_accepted" notification below.
+            %UserFollow{}
+            |> UserFollow.changeset(%{
+              follower_id: request.sender_id,
+              followed_id: request.receiver_id,
+              is_friend: true
+            })
+            |> Repo.insert!()
+          end
+
+          # Check and create follow B -> A
+          unless following?(request.receiver_id, request.sender_id) do
+            %UserFollow{}
+            |> UserFollow.changeset(%{
+              follower_id: request.receiver_id,
+              followed_id: request.sender_id,
+              is_friend: true
+            })
+            |> Repo.insert!()
+          end
+
+          # Update existing follows ...
+          from(uf in UserFollow,
+            where:
+              (uf.follower_id == ^request.sender_id and uf.followed_id == ^request.receiver_id) or
+                (uf.follower_id == ^request.receiver_id and uf.followed_id == ^request.sender_id)
+          )
+          |> Repo.update_all(set: [is_friend: true])
+
+          # 3. Notify sender
+          TheStoryVoyageApi.Notifications.create_notification(%{
+            recipient_id: request.sender_id,
+            actor_id: receiver_id,
+            type: "friend_request_accepted"
+          })
+        end)
+    end
   end
 
   def list_followers(%User{} = user) do
@@ -99,81 +211,6 @@ defmodule TheStoryVoyageApi.Social do
   end
 
   ## Friends
-
-  def send_friend_request(%User{id: sender_id}, %User{id: receiver_id}) do
-    if sender_id == receiver_id do
-      {:error, :cannot_friend_self}
-    else
-      if blocking?(receiver_id, sender_id) or blocking?(sender_id, receiver_id) do
-        {:error, :blocked}
-      else
-        %FriendRequest{}
-        |> FriendRequest.changeset(%{
-          sender_id: sender_id,
-          receiver_id: receiver_id,
-          status: "pending"
-        })
-        |> Repo.insert()
-      end
-    end
-  end
-
-  def accept_friend_request(request_id, %User{id: receiver_id}) do
-    request = Repo.get(FriendRequest, request_id)
-
-    cond do
-      is_nil(request) ->
-        {:error, :not_found}
-
-      request.receiver_id != receiver_id ->
-        {:error, :unauthorized}
-
-      request.status != "pending" ->
-        {:error, :already_processed}
-
-      true ->
-        Repo.transaction(fn ->
-          # 1. Update request status
-          request
-          |> FriendRequest.changeset(%{status: "accepted"})
-          |> Repo.update!()
-
-          # 2. Auto-follow mutually (optional but common for friends logic,
-          # allows feed to work easily. Or we can rely on is_friend logic.
-          # Let's auto-follow for simpler feed logic in F13)
-
-          # Check and create follow A -> B
-          unless following?(request.sender_id, request.receiver_id) do
-            %UserFollow{}
-            |> UserFollow.changeset(%{
-              follower_id: request.sender_id,
-              followed_id: request.receiver_id,
-              is_friend: true
-            })
-            |> Repo.insert!()
-          end
-
-          # Check and create follow B -> A
-          unless following?(request.receiver_id, request.sender_id) do
-            %UserFollow{}
-            |> UserFollow.changeset(%{
-              follower_id: request.receiver_id,
-              followed_id: request.sender_id,
-              is_friend: true
-            })
-            |> Repo.insert!()
-          end
-
-          # Update existing follows to be friends if they existed
-          from(uf in UserFollow,
-            where:
-              (uf.follower_id == ^request.sender_id and uf.followed_id == ^request.receiver_id) or
-                (uf.follower_id == ^request.receiver_id and uf.followed_id == ^request.sender_id)
-          )
-          |> Repo.update_all(set: [is_friend: true])
-        end)
-    end
-  end
 
   def reject_friend_request(request_id, %User{id: receiver_id}) do
     request = Repo.get(FriendRequest, request_id)

@@ -10,6 +10,11 @@ defmodule TheStoryVoyageApi.SocialTest do
       user2 = user_fixture()
       assert {:ok, _follow} = Social.follow_user(user1, user2)
       assert Social.following?(user1.id, user2.id)
+
+      # Verify notification
+      assert [notification] = TheStoryVoyageApi.Notifications.list_notifications(user2)
+      assert notification.type == "new_follower"
+      assert notification.actor_id == user1.id
     end
 
     test "cannot follow self" do

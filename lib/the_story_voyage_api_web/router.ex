@@ -60,6 +60,10 @@ defmodule TheStoryVoyageApiWeb.Router do
 
       get "/feed", ActivityController, :index
 
+      get "/notifications", NotificationController, :index
+      put "/notifications/:id/read", NotificationController, :mark_read
+      put "/notifications/read-all", NotificationController, :mark_all_read
+
       post "/books/:id/tags", UserBookController, :add_tag
       delete "/books/:id/tags/:tag_name", UserBookController, :remove_tag
 
